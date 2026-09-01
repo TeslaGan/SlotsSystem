@@ -1,0 +1,16 @@
+{
+    "name": "Core.SlotsSystem.Example",
+    "rootNamespace": "Example",
+    "references": [
+        "Core.SlotsSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
