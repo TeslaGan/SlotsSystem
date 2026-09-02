@@ -2,7 +2,7 @@
 
 Простая generic-система слотов для C#.
 
-Один `Slot<TEntity>` хранит одну сущность. Сам слот не знает, какие enum-флаги используются для фильтрации: это знает `SlotDefinition<TEntity, TFlags>`.
+Один `Slot<TEntity>` хранит одну сущность. Слот зависит только от контракта `ISlotDefinition<TEntity>` и поэтому не знает, как именно выполняется matching.
 
 Проверка состоит из двух частей:
 
@@ -10,13 +10,38 @@
 return Definition.Match(entity) && ParentMatcher(entity);
 ```
 
-- `Definition.Match(entity)` — базовая проверка по enum-флагам.
+- `Definition.Match(entity)` — базовая проверка definition.
 - `ParentMatcher(entity)` — дополнительное runtime-условие владельца слота.
+
+## Definitions
+
+Базовый `SlotDefinition<TEntity>` принимает любую сущность:
+
+```csharp
+var anyDefinition = new SlotDefinition<Item>();
+```
+
+Enum-вариант фильтрует по флагам:
+
+```csharp
+var itemDefinition = new EnumSlotDefinition<Item, ItemType>(
+    ItemType.Food | ItemType.Weapon,
+    FlagMatchMode.Any);
+```
+
+Type-вариант фильтрует по типу или интерфейсу:
+
+```csharp
+var weaponDefinition = new TypeSlotDefinition<object, IWeapon>();
+var itemDefinition = new TypeSlotDefinition<object, IItem>();
+```
+
+При этом `ISlotDefinition<TEntity>` остаётся общим контрактом для всех реализаций.
 
 ## Рюкзак
 
 ```csharp
-var definition = new SlotDefinition<Item, ItemType>(
+var definition = new EnumSlotDefinition<Item, ItemType>(
     ItemType.Food | ItemType.Weapon,
     FlagMatchMode.Any);
 
@@ -41,7 +66,7 @@ Backpack
 У пассажиров свой enum, никак не связанный с `ItemType`:
 
 ```csharp
-var definition = new SlotDefinition<Person, PassengerType>(
+var definition = new EnumSlotDefinition<Person, PassengerType>(
     PassengerType.Human | PassengerType.Animal,
     FlagMatchMode.Any);
 
@@ -50,7 +75,7 @@ var passengerSlot = new Slot<Person>(
     person => person.Height < 2f);
 ```
 
-`SlotDefinition` проверяет тип пассажира, а `ParentMatcher` — дополнительное правило конкретного владельца.
+`EnumSlotDefinition` проверяет тип пассажира, а `ParentMatcher` — дополнительное правило конкретного владельца.
 
 ```csharp
 passengerSlot.CanAccept(alice); // true
@@ -68,14 +93,4 @@ List<Slot<Item>> itemSlots;
 List<Slot<Person>> passengerSlots;
 ```
 
-Один объект может одновременно иметь разные группы слотов с разными `TEntity` и разными enum-флагами.
-
-## Точка расширения
-
-`Slot<TEntity>` зависит только от:
-
-```csharp
-ISlotDefinition<TEntity>
-```
-
-Поэтому позже можно добавить другой способ matching-а без изменения самого `Slot<TEntity>`. Например type-based definition для `IWeapon` или `IItem`.
+Один объект может одновременно иметь разные группы слотов с разными `TEntity` и разными способами matching-а.

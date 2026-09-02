@@ -29,7 +29,7 @@ namespace Example
     {
         public static void Run()
         {
-            var definition = new SlotDefinition<Item, ItemType>(
+            var definition = new EnumSlotDefinition<Item, ItemType>(
                 ItemType.Food | ItemType.Weapon | ItemType.Tool,
                 FlagMatchMode.Any);
 

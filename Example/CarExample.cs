@@ -43,11 +43,11 @@ namespace Example
     {
         public static void Run()
         {
-            var passengerDefinition = new SlotDefinition<Person, PassengerType>(
+            var passengerDefinition = new EnumSlotDefinition<Person, PassengerType>(
                 PassengerType.Human | PassengerType.Animal,
                 FlagMatchMode.Any);
 
-            var itemDefinition = new SlotDefinition<Item, ItemType>(
+            var itemDefinition = new EnumSlotDefinition<Item, ItemType>(
                 ItemType.Food | ItemType.Weapon | ItemType.Tool,
                 FlagMatchMode.Any);
 
