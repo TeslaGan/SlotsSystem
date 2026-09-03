@@ -4,7 +4,7 @@ namespace SlotsSystem
 {
     public sealed class Slot<TEntity>
     {
-        public event Action<SlotChange<TEntity>> Changed;
+        public event Action<SlotChangeData<TEntity>> Changed;
 
         public ISlotDefinition<TEntity> Definition { get; }
         public Func<TEntity, bool> ParentMatcher { get; }
@@ -18,17 +18,20 @@ namespace SlotsSystem
 
         public bool CanAccept(TEntity entity)
         {
+            if(entity is null)
+                return false;
+
             return Definition.Match(entity) && ParentMatcher(entity);
         }
 
         public bool TrySet(TEntity entity)
         {
-            if(CanAccept(entity) == false)
+            if(entity is not null && CanAccept(entity) == false)
                 return false;
 
-            var previousContent = Content;
+            TEntity previousContent = Content;
             Content = entity;
-            Changed?.Invoke(new SlotChange<TEntity>(this, previousContent, Content));
+            Changed?.Invoke(new SlotChangeData<TEntity>(this, previousContent, Content));
 
             return true;
         }
