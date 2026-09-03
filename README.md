@@ -1,110 +1,76 @@
-# SlotsSystem
+# Core.SlotsSystem
 
-Простая generic-система слотов для C#.
+Маленькая generic-система слотов для C# и Unity-проектов.
 
-Один `Slot<TEntity>` хранит одну сущность. Слот зависит только от контракта `ISlotDefinition<TEntity>` и поэтому не знает, как именно выполняется matching.
+## Slot
 
-Проверка состоит из двух частей:
+`Slot<TEntity>` — основной элемент системы. Он хранит одну сущность `TEntity`.
+
+Слот создаётся с definition, который описывает, какие сущности в него можно помещать:
 
 ```csharp
-return Definition.Match(entity) && ParentMatcher(entity);
+var definition = new TypeSlotDefinition<object, IItem>();
+var slot = new Slot<object>(definition);
 ```
 
-- `Definition.Match(entity)` — базовая проверка definition.
-- `ParentMatcher(entity)` — дополнительное runtime-условие владельца слота.
+При необходимости при создании можно передать дополнительное условие владельца через `ParentMatcher`:
 
-`CanAccept(null)` возвращает `false`: `null` не является сущностью, которую слот может принять.
-
-При этом `TrySet(null)` является валидной операцией и очищает слот. Для `null` проверки `Definition` и `ParentMatcher` не выполняются.
-
-После любого успешного `TrySet(...)` событие `Changed` вызывается после обновления `Content` и передаёт `SlotChangeData<TEntity>`:
-
-```text
-Slot
-PreviousContent
-Content
+```csharp
+var slot = new Slot<Item>(definition, item => backpack.HasSpaceFor(item));
 ```
 
-Событие вызывается и при повторной установке того же значения, и при `TrySet(null)` на уже пустом слоте. Если новая сущность не проходит проверку, `TrySet(...)` возвращает `false`, `Content` не меняется и `Changed` не вызывается.
+При добавлении обычной сущности слот сначала проверяет её через `Definition.Match(entity)`, а затем, если задано, проверяет условие владельца через `ParentMatcher(entity)`.
+
+Например, definition может проверить, что яблоко вообще является предметом, который подходит этому типу слота, а рюкзак после этого может проверить, хватает ли в нём места для этого яблока.
+
+Сущность помещается в слот через `TrySet(...)`:
+
+```csharp
+var apple = new Item("Apple", ItemType.Food);
+
+if(slot.TrySet(apple))
+{
+    // apple помещён в слот
+}
+```
+
+Если сущность не подходит definition или не проходит условие владельца, `TrySet(...)` возвращает `false` и содержимое слота не меняется.
+
+Передача `null` является обычной очисткой слота:
+
+```csharp
+slot.TrySet(null);
+```
+
+После успешного `TrySet(...)` событие `Changed` вызывается после обновления `Content`. Payload события — `SlotChangeData<TEntity>`, содержащий сам слот, предыдущее и текущее содержимое.
+
+Коллекция слотов как отдельная сущность в репозитории не представлена. При необходимости потребитель сам хранит нужную ему коллекцию `Slot<TEntity>`.
 
 ## Definitions
 
-Базовый `SlotDefinition<TEntity>` принимает любую сущность:
+`SlotDefinition<TEntity>` — класс описания типа слота.
 
-```csharp
-var anyDefinition = new SlotDefinition<Item>();
-```
+В репозитории есть готовые варианты:
 
-Enum-вариант фильтрует по флагам:
+- `EnumSlotDefinition<TEntity, TFlags>` — принимает сущности по enum-флагам через `IFlagged<TFlags>` и режим `Any` или `All`.
+- `TypeSlotDefinition<TEntity, TAccepted>` — принимает сущности, совместимые с указанным типом или интерфейсом.
 
-```csharp
-var itemDefinition = new EnumSlotDefinition<Item, ItemType>(
-    ItemType.Food | ItemType.Weapon,
-    FlagMatchMode.Any);
-```
-
-Type-вариант фильтрует по типу или интерфейсу:
-
-```csharp
-var weaponDefinition = new TypeSlotDefinition<object, IWeapon>();
-var itemDefinition = new TypeSlotDefinition<object, IItem>();
-```
-
-При этом `ISlotDefinition<TEntity>` остаётся общим контрактом для всех реализаций.
-
-## Рюкзак
+Пример enum definition:
 
 ```csharp
 var definition = new EnumSlotDefinition<Item, ItemType>(
     ItemType.Food | ItemType.Weapon,
     FlagMatchMode.Any);
-
-var slots = new List<Slot<Item>>
-{
-    new(definition),
-    new(definition)
-};
-
-slots[0].TrySet(new Item("Sword", ItemType.Weapon));
-slots[1].TrySet(new Item("Apple", ItemType.Food));
 ```
 
-```text
-Backpack
-├── Slot<Item> → Sword
-└── Slot<Item> → Apple
-```
-
-## Автомобиль
-
-У пассажиров свой enum, никак не связанный с `ItemType`:
+Пример type definition:
 
 ```csharp
-var definition = new EnumSlotDefinition<Person, PassengerType>(
-    PassengerType.Human | PassengerType.Animal,
-    FlagMatchMode.Any);
-
-var passengerSlot = new Slot<Person>(
-    definition,
-    person => person.Height < 2f);
+var definition = new TypeSlotDefinition<object, IItem>();
 ```
 
-`EnumSlotDefinition` проверяет тип пассажира, а `ParentMatcher` — дополнительное правило конкретного владельца.
+Можно реализовать собственный `ISlotDefinition<TEntity>`, если нужен другой способ описания допустимого содержимого слота.
 
-```csharp
-passengerSlot.CanAccept(alice); // true
-passengerSlot.CanAccept(bob);   // false
-```
+## Example
 
-Полные примеры находятся в папке [`Example`](./Example).
-
-## Несколько мест
-
-Один `Slot` — одно место. Несколько мест — обычная коллекция:
-
-```csharp
-List<Slot<Item>> itemSlots;
-List<Slot<Person>> passengerSlots;
-```
-
-Один объект может одновременно иметь разные группы слотов с разными `TEntity` и разными способами matching-а.
+В репозитории есть примеры использования системы. Они помещены в папку `Example`.

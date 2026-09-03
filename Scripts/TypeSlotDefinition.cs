@@ -1,4 +1,4 @@
-namespace SlotsSystem
+namespace Core.SlotsSystem
 {
     public sealed class TypeSlotDefinition<TEntity, TAccepted> : SlotDefinition<TEntity>
     {

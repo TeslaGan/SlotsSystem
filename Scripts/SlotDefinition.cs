@@ -1,4 +1,4 @@
-namespace SlotsSystem
+namespace Core.SlotsSystem
 {
     public class SlotDefinition<TEntity> : ISlotDefinition<TEntity>
     {

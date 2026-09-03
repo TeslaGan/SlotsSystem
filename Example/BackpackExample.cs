@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using SlotsSystem;
+using Core.SlotsSystem;
 
 namespace Example
 {
@@ -15,24 +15,21 @@ namespace Example
 
     public sealed class Item : IFlagged<ItemType>
     {
-        public string Name { get; }
-        public ItemType Flags { get; }
-
         public Item(string name, ItemType flags)
         {
             Name = name;
             Flags = flags;
         }
+
+        public string Name { get; }
+        public ItemType Flags { get; }
     }
 
     public static class BackpackExample
     {
         public static void Run()
         {
-            var definition = new EnumSlotDefinition<Item, ItemType>(
-                ItemType.Food | ItemType.Weapon | ItemType.Tool,
-                FlagMatchMode.Any);
-
+            var definition = new EnumSlotDefinition<Item, ItemType>(ItemType.Food | ItemType.Weapon | ItemType.Tool, FlagMatchMode.Any);
             var slots = new List<Slot<Item>>
             {
                 new(definition),

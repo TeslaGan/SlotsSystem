@@ -1,4 +1,4 @@
-using SlotsSystem;
+using Core.SlotsSystem;
 
 namespace Example
 {
@@ -29,62 +29,56 @@ namespace Example
 
     public sealed class Boots : IBoots
     {
-        public string Name { get; }
-
         public Boots(string name)
         {
             Name = name;
         }
+
+        public string Name { get; }
     }
 
     public sealed class Pants : IPants
     {
-        public string Name { get; }
-
         public Pants(string name)
         {
             Name = name;
         }
+
+        public string Name { get; }
     }
 
     public sealed class BodyArmor : IBodyArmor
     {
-        public string Name { get; }
-
         public BodyArmor(string name)
         {
             Name = name;
         }
+
+        public string Name { get; }
     }
 
     public sealed class Helmet : IHelmet
     {
-        public string Name { get; }
-
         public Helmet(string name)
         {
             Name = name;
         }
+
+        public string Name { get; }
     }
 
     public sealed class Sword : IHandEquipment
     {
-        public string Name { get; }
-
         public Sword(string name)
         {
             Name = name;
         }
+
+        public string Name { get; }
     }
 
     public sealed class CharacterEquipment
     {
-        public Slot<IEquipment> Boots { get; }
-        public Slot<IEquipment> Pants { get; }
-        public Slot<IEquipment> Body { get; }
-        public Slot<IEquipment> Head { get; }
-        public Slot<IEquipment> Hand { get; }
-
         public CharacterEquipment()
         {
             Boots = new Slot<IEquipment>(new TypeSlotDefinition<IEquipment, IBoots>());
@@ -93,6 +87,12 @@ namespace Example
             Head = new Slot<IEquipment>(new TypeSlotDefinition<IEquipment, IHelmet>());
             Hand = new Slot<IEquipment>(new TypeSlotDefinition<IEquipment, IHandEquipment>());
         }
+
+        public Slot<IEquipment> Boots { get; }
+        public Slot<IEquipment> Pants { get; }
+        public Slot<IEquipment> Body { get; }
+        public Slot<IEquipment> Head { get; }
+        public Slot<IEquipment> Hand { get; }
     }
 
     public static class CharacterEquipmentExample
@@ -100,21 +100,20 @@ namespace Example
         public static void Run()
         {
             var equipment = new CharacterEquipment();
-
             var boots = new Boots("Leather Boots");
             var pants = new Pants("Traveler Pants");
             var armor = new BodyArmor("Iron Armor");
             var helmet = new Helmet("Iron Helmet");
             var sword = new Sword("Longsword");
 
-            equipment.Boots.TrySet(boots);   // true
-            equipment.Pants.TrySet(pants);   // true
-            equipment.Body.TrySet(armor);    // true
-            equipment.Head.TrySet(helmet);   // true
-            equipment.Hand.TrySet(sword);    // true
+            equipment.Boots.TrySet(boots);
+            equipment.Pants.TrySet(pants);
+            equipment.Body.TrySet(armor);
+            equipment.Head.TrySet(helmet);
+            equipment.Hand.TrySet(sword);
 
-            equipment.Head.TrySet(sword);    // false: Sword is not IHelmet
-            equipment.Boots.TrySet(helmet);  // false: Helmet is not IBoots
+            equipment.Head.TrySet(sword);
+            equipment.Boots.TrySet(helmet);
         }
     }
 }

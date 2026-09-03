@@ -1,6 +1,6 @@
 using System;
 
-namespace SlotsSystem
+namespace Core.SlotsSystem
 {
     public static class FlagMatch
     {

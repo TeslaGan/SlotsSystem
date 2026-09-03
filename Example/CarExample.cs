@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using SlotsSystem;
+using Core.SlotsSystem;
 
 namespace Example
 {
@@ -15,48 +15,41 @@ namespace Example
 
     public sealed class Person : IFlagged<PassengerType>
     {
-        public string Name { get; }
-        public PassengerType Flags { get; }
-        public float Height { get; }
-
         public Person(string name, PassengerType flags, float height)
         {
             Name = name;
             Flags = flags;
             Height = height;
         }
+
+        public string Name { get; }
+        public PassengerType Flags { get; }
+        public float Height { get; }
     }
 
     public sealed class Car
     {
-        public List<Slot<Person>> PassengerSlots { get; }
-        public List<Slot<Item>> TrunkSlots { get; }
-
         public Car(List<Slot<Person>> passengerSlots, List<Slot<Item>> trunkSlots)
         {
             PassengerSlots = passengerSlots;
             TrunkSlots = trunkSlots;
         }
+
+        public List<Slot<Person>> PassengerSlots { get; }
+        public List<Slot<Item>> TrunkSlots { get; }
     }
 
     public static class CarExample
     {
         public static void Run()
         {
-            var passengerDefinition = new EnumSlotDefinition<Person, PassengerType>(
-                PassengerType.Human | PassengerType.Animal,
-                FlagMatchMode.Any);
-
-            var itemDefinition = new EnumSlotDefinition<Item, ItemType>(
-                ItemType.Food | ItemType.Weapon | ItemType.Tool,
-                FlagMatchMode.Any);
-
+            var passengerDefinition = new EnumSlotDefinition<Person, PassengerType>(PassengerType.Human | PassengerType.Animal, FlagMatchMode.Any);
+            var itemDefinition = new EnumSlotDefinition<Item, ItemType>(ItemType.Food | ItemType.Weapon | ItemType.Tool, FlagMatchMode.Any);
             var passengerSlots = new List<Slot<Person>>
             {
                 new(passengerDefinition, person => person.Height < 2f),
                 new(passengerDefinition, person => person.Height < 2f)
             };
-
             var trunkSlots = new List<Slot<Item>>
             {
                 new(itemDefinition),
@@ -69,10 +62,10 @@ namespace Example
             var sword = new Item("Sword", ItemType.Weapon);
             var apple = new Item("Apple", ItemType.Food);
 
-            car.PassengerSlots[0].TrySet(alice); // true
-            car.PassengerSlots[1].TrySet(bob);   // false: ParentMatcher
-            car.TrunkSlots[0].TrySet(sword);     // true
-            car.TrunkSlots[1].TrySet(apple);     // true
+            car.PassengerSlots[0].TrySet(alice);
+            car.PassengerSlots[1].TrySet(bob);
+            car.TrunkSlots[0].TrySet(sword);
+            car.TrunkSlots[1].TrySet(apple);
         }
     }
 }
