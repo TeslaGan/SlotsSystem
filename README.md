@@ -13,6 +13,20 @@ return Definition.Match(entity) && ParentMatcher(entity);
 - `Definition.Match(entity)` — базовая проверка definition.
 - `ParentMatcher(entity)` — дополнительное runtime-условие владельца слота.
 
+`CanAccept(null)` возвращает `false`: `null` не является сущностью, которую слот может принять.
+
+При этом `TrySet(null)` является валидной операцией и очищает слот. Для `null` проверки `Definition` и `ParentMatcher` не выполняются.
+
+После любого успешного `TrySet(...)` событие `Changed` вызывается после обновления `Content` и передаёт `SlotChangeData<TEntity>`:
+
+```text
+Slot
+PreviousContent
+Content
+```
+
+Событие вызывается и при повторной установке того же значения, и при `TrySet(null)` на уже пустом слоте. Если новая сущность не проходит проверку, `TrySet(...)` возвращает `false`, `Content` не меняется и `Changed` не вызывается.
+
 ## Definitions
 
 Базовый `SlotDefinition<TEntity>` принимает любую сущность:
