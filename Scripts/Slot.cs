@@ -2,18 +2,16 @@ using System;
 
 namespace Core.SlotsSystem
 {
-    public sealed class Slot<TEntity>
+    public sealed class Slot<TEntity> : ISlot<TEntity>
     {
         public event Action<SlotChangeData<TEntity>> Changed;
 
-        public Slot(ISlotDefinition<TEntity> definition, Func<TEntity, bool> parentMatcher = null)
+        public Slot(ISlotDefinition<TEntity> definition)
         {
             Definition = definition ?? throw new ArgumentNullException(nameof(definition));
-            ParentMatcher = parentMatcher ?? (_ => true);
         }
 
         public ISlotDefinition<TEntity> Definition { get; }
-        public Func<TEntity, bool> ParentMatcher { get; }
         public TEntity Content { get; private set; }
 
         public bool CanAccept(TEntity entity)
@@ -21,15 +19,21 @@ namespace Core.SlotsSystem
             if(entity is null)
                 return false;
 
-            return Definition.Match(entity) && ParentMatcher(entity);
+            return Definition.Match(entity);
         }
 
         public bool TrySet(TEntity entity)
         {
+            return TrySet(entity, out _);
+        }
+
+        public bool TrySet(TEntity entity, out TEntity previousContent)
+        {
+            previousContent = Content;
+
             if(entity is not null && CanAccept(entity) == false)
                 return false;
 
-            TEntity previousContent = Content;
             Content = entity;
             Changed?.Invoke(new SlotChangeData<TEntity>(this, previousContent, Content));
 
