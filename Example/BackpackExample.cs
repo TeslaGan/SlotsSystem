@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Core.SlotsSystem;
 
 namespace Example
@@ -30,17 +29,18 @@ namespace Example
         public static void Run()
         {
             var definition = new EnumSlotDefinition<Item, ItemType>(ItemType.Food | ItemType.Weapon | ItemType.Tool, FlagMatchMode.Any);
-            var slots = new List<Slot<Item>>
-            {
-                new(definition),
-                new(definition)
-            };
+            var backpack = new SlotContainer<Item>();
+            var firstSlot = new Slot<Item>(definition);
+            var secondSlot = new Slot<Item>(definition);
+
+            backpack.Add(firstSlot);
+            backpack.Add(secondSlot);
 
             var sword = new Item("Sword", ItemType.Weapon);
             var apple = new Item("Apple", ItemType.Food);
 
-            slots[0].TrySet(sword);
-            slots[1].TrySet(apple);
+            backpack.Slots[0].TrySet(sword);
+            backpack.Slots[1].TrySet(apple);
         }
     }
 }
