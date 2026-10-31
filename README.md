@@ -1,167 +1,122 @@
-# Core.SlotsSystem
+# SlotsSystem
 
-Маленькая generic-система слотов для C# и Unity-проектов.
+Small, reusable slot system for Unity and C# projects.
 
-Система отвечает только за хранение сущностей в слотах, проверку допустимого содержимого, контролируемый внешний доступ и группировку слотов. Gameplay-смысл слота — топливо, экипировка, ингредиент, выход производства и т.д. — задаётся кодом проекта поверх Core.
+SlotsSystem provides a compact set of primitives for:
 
-## Slot
+- storing one entity in a slot;
+- validating accepted content;
+- exposing read-only or controlled external access;
+- grouping slots into containers;
+- reacting to content changes.
 
-`Slot<TEntity>` — авторитетное хранилище одной сущности.
+The package intentionally does not define gameplay concepts such as inventories, equipment, fuel, crafting, or item behavior. Those semantics belong to the consuming project.
 
-Слот создаётся с definition, который определяет допустимое содержимое:
+## Core API
+
+### Slot
+
+`Slot<TEntity>` is the authoritative storage for one entity.
 
 ```csharp
 var definition = new TypeSlotDefinition<object, IItem>();
 var slot = new Slot<object>(definition);
-```
 
-Проверить сущность можно через `CanAccept(...)`.
-
-Изменить содержимое владелец слота может через `TrySet(...)`:
-
-```csharp
 slot.TrySet(item);
 slot.TrySet(null);
 ```
 
-`null` является обычной очисткой слота.
+Use `CanAccept(...)` to validate content before changing the slot.
 
-Если нужно получить заменённое содержимое:
+To retrieve replaced content:
 
 ```csharp
-if(slot.TrySet(newItem, out Item previousItem))
+if(slot.TrySet(newItem, out object previousItem))
 {
-    // previousItem — прежнее содержимое слота.
+    // previousItem contains the old value.
 }
 ```
 
-После успешного изменения вызывается `Changed`. Событие содержит `SlotChangeData<TEntity>` с read-only ссылкой на слот, предыдущим и текущим содержимым.
+Successful changes raise `Changed` with the previous and current content.
 
-## Slot views and access
+### Access
 
-Core разделяет авторитетное изменение состояния и внешний доступ:
+SlotsSystem separates authoritative mutation from external access:
 
-- `IReadOnlySlot<TEntity>` — чтение содержимого и `Changed`;
-- `ISlot<TEntity>` — авторитетный доступ владельца через `TrySet(...)`;
-- `ISlotAccess<TEntity>` — внешний доступ через `TryInsert(...)` и `TryExtract(...)`.
+- `IReadOnlySlot<TEntity>` — read content and observe changes;
+- `ISlot<TEntity>` — owner-level mutation through `TrySet(...)`;
+- `ISlotAccess<TEntity>` — controlled insertion and extraction.
 
-`SlotAccess<TEntity>` оборачивает существующий слот и может добавлять отдельные правила вставки и извлечения:
+`SlotAccess<TEntity>` can apply independent insert and extract rules without restricting the slot owner.
 
 ```csharp
-var slot = new Slot<Item>(definition);
 var access = new SlotAccess<Item>(
     slot,
     insertMatcher: item => CanInsert(item),
     extractMatcher: item => CanExtract(item));
-```
 
-Внешний код работает через access:
-
-```csharp
 access.TryInsert(item);
 access.TryExtract(out Item extracted);
 ```
 
-При этом владелец всё ещё может менять состояние напрямую:
+### Containers
 
-```csharp
-slot.TrySet(replacement);
-```
+Slots can be used independently or grouped with:
 
-Это позволяет, например, запретить внешнее извлечение топлива во время работы печи, но оставить самой печи возможность заменить уголь на золу.
-
-## Containers
-
-Одиночный слот не требует контейнера.
-
-Если несколько слотов нужно рассматривать как одну группу, используются:
-
-- `SlotContainer<TEntity>`;
-- `SlotContainerAccess<TEntity>`;
-- `IReadOnlySlotContainer<TEntity>`;
-- `ISlotContainer<TEntity>`;
-- `ISlotContainerAccess<TEntity>`.
-
-Пример:
+- `SlotContainer<TEntity>`
+- `SlotContainerAccess<TEntity>`
+- `IReadOnlySlotContainer<TEntity>`
+- `ISlotContainer<TEntity>`
+- `ISlotContainerAccess<TEntity>`
 
 ```csharp
 var inventory = new SlotContainer<Item>();
 
 inventory.Add(new Slot<Item>(definition));
 inventory.Add(new Slot<Item>(definition));
-
-inventory.Slots[0].TrySet(item);
 ```
 
-Один и тот же физический слот можно одновременно включить в авторитетный контейнер и во внешний access-контейнер.
+### Definitions
 
-## Gameplay capabilities
+Built-in definitions:
 
-`Core.SlotsSystem` не определяет интерфейсы вроде `IFuelConsumer`, `IEquipment`, `IManaStorage` или `IEquipment`.
+- `TypeSlotDefinition<TEntity, TAccepted>`
+- `EnumSlotDefinition<TEntity, TFlags>`
 
-Их рекомендуется объявлять в игровом слое и строить поверх slot/access API.
+Custom acceptance rules can be implemented with `ISlotDefinition<TEntity>`.
 
-Например, предмет экипировки может предоставлять capability:
+## Gameplay integration
 
-```csharp
-public interface IEquippedTickable
+SlotsSystem only owns slot storage, validation, access, and grouping.
+
+Gameplay capabilities should be defined by the consuming project. A furnace can decide when extraction is allowed, an equipment system can tick equipped items, and a UI can work only with read-only slot views without adding those concepts to SlotsSystem itself.
+
+The `Example` folder contains small integration examples.
+
+## Unity installation
+
+Add the repository through Unity Package Manager:
+
+```text
+https://github.com/TeslaGan/SlotsSystem.git
+```
+
+Or add it to `Packages/manifest.json`:
+
+```json
 {
-    void Tick(IEquipmentContext context, float deltaTime);
+  "dependencies": {
+    "com.teslagan.slots-system": "https://github.com/TeslaGan/SlotsSystem.git"
+  }
 }
 ```
 
-Система экипировки работает только с read-only слотами:
+For reproducible builds, pin a tag or commit:
 
-```csharp
-foreach(IReadOnlySlot<Item> slot in equipped.Slots)
-{
-    if(slot.Content is IEquippedTickable tickable)
-        tickable.Tick(context, deltaTime);
-}
+```text
+https://github.com/TeslaGan/SlotsSystem.git#v0.1.0
 ```
 
-А изменение экипировки может быть доступно внешним системам через `ISlotContainerAccess<TEntity>`.
+## License
 
-Таким образом Core предоставляет механизм хранения и доступа, а проект самостоятельно определяет:
-
-- какие capabilities есть у содержимого;
-- какие группы слотов участвуют в конкретной механике;
-- какой context получает активный предмет;
-- какие операции доступны внешним системам.
-
-В `EquipmentCapabilityExample.cs` показан пример с двумя кольцами и рюкзаком. Кольца получают tick через gameplay capability, а context предоставляет им только предметы рюкзака. Поэтому генератор и батарея маны работают с предметами рюкзака, но не балансируют ману между самими кольцами.
-
-## Definitions
-
-`SlotDefinition<TEntity>` — базовый definition слота.
-
-Готовые варианты:
-
-- `EnumSlotDefinition<TEntity, TFlags>` — проверка enum-флагов через `IFlagged<TFlags>` и режим `Any` или `All`;
-- `TypeSlotDefinition<TEntity, TAccepted>` — проверка совместимости с типом или интерфейсом.
-
-Пример enum definition:
-
-```csharp
-var definition = new EnumSlotDefinition<Item, ItemType>(
-    ItemType.Food | ItemType.Weapon,
-    FlagMatchMode.Any);
-```
-
-Пример type definition:
-
-```csharp
-var definition = new TypeSlotDefinition<object, IItem>();
-```
-
-Для собственных правил можно реализовать `ISlotDefinition<TEntity>`.
-
-## Examples
-
-Примеры находятся в папке `Example`:
-
-- `CharacterEquipmentExample.cs` — независимые типизированные слоты экипировки;
-- `BackpackExample.cs` — группа слотов через `SlotContainer<TEntity>`;
-- `CarExample.cs` — внешний доступ и дополнительные правила через `SlotAccess<TEntity>`;
-- `FurnaceExample.cs` — внешний access может быть заблокирован, пока владелец слота продолжает менять его состояние;
-- `EquipmentCapabilityExample.cs` — gameplay capabilities, read-only группы и отдельные access-группы поверх SlotsSystem.
+MIT.
