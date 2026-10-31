@@ -56,10 +56,11 @@ namespace Core.SlotsSystem
 
         public bool TryExtract(out TEntity entity)
         {
-            entity = _slot.Content;
-
             if(CanExtract == false)
+            {
+                entity = default;
                 return false;
+            }
 
             return _slot.TrySet(default, out entity);
         }

@@ -2,8 +2,8 @@ using System.Collections.Generic;
 
 namespace Core.SlotsSystem
 {
-    public interface ISlotContainer<TEntity>
+    public interface ISlotContainer<TEntity> : IReadOnlySlotContainer<TEntity>
     {
-        IReadOnlyList<ISlot<TEntity>> Slots { get; }
+        new IReadOnlyList<ISlot<TEntity>> Slots { get; }
     }
 }

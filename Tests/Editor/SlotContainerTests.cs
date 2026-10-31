@@ -44,10 +44,11 @@ namespace Core.SlotsSystem.Tests.Editor
 
             container.Add(slot);
 
-            IReadOnlySlotContainer<TestEntity> readOnlyContainer = container;
+            ISlotContainer<TestEntity> mutableContainer = container;
+            IReadOnlySlotContainer<TestEntity> readOnlyContainer = mutableContainer;
 
-            Assert.That(container.Slots.Count, Is.EqualTo(1));
-            Assert.That(container.Slots[0], Is.SameAs(slot));
+            Assert.That(mutableContainer.Slots.Count, Is.EqualTo(1));
+            Assert.That(mutableContainer.Slots[0], Is.SameAs(slot));
             Assert.That(readOnlyContainer.Slots.Count, Is.EqualTo(1));
             Assert.That(readOnlyContainer.Slots[0], Is.SameAs(slot));
         }
@@ -62,10 +63,11 @@ namespace Core.SlotsSystem.Tests.Editor
 
             bool result = container.Remove(slot);
 
-            IReadOnlySlotContainer<TestEntity> readOnlyContainer = container;
+            ISlotContainer<TestEntity> mutableContainer = container;
+            IReadOnlySlotContainer<TestEntity> readOnlyContainer = mutableContainer;
 
             Assert.That(result, Is.True);
-            Assert.That(container.Slots, Is.Empty);
+            Assert.That(mutableContainer.Slots, Is.Empty);
             Assert.That(readOnlyContainer.Slots, Is.Empty);
         }
 
@@ -89,10 +91,11 @@ namespace Core.SlotsSystem.Tests.Editor
 
             container.Add(access);
 
-            IReadOnlySlotContainer<TestEntity> readOnlyContainer = container;
+            ISlotContainerAccess<TestEntity> accessContainer = container;
+            IReadOnlySlotContainer<TestEntity> readOnlyContainer = accessContainer;
 
-            Assert.That(container.Slots.Count, Is.EqualTo(1));
-            Assert.That(container.Slots[0], Is.SameAs(access));
+            Assert.That(accessContainer.Slots.Count, Is.EqualTo(1));
+            Assert.That(accessContainer.Slots[0], Is.SameAs(access));
             Assert.That(readOnlyContainer.Slots.Count, Is.EqualTo(1));
             Assert.That(readOnlyContainer.Slots[0], Is.SameAs(access));
         }
@@ -120,10 +123,11 @@ namespace Core.SlotsSystem.Tests.Editor
 
             bool result = container.Remove(access);
 
-            IReadOnlySlotContainer<TestEntity> readOnlyContainer = container;
+            ISlotContainerAccess<TestEntity> accessContainer = container;
+            IReadOnlySlotContainer<TestEntity> readOnlyContainer = accessContainer;
 
             Assert.That(result, Is.True);
-            Assert.That(container.Slots, Is.Empty);
+            Assert.That(accessContainer.Slots, Is.Empty);
             Assert.That(readOnlyContainer.Slots, Is.Empty);
         }
     }

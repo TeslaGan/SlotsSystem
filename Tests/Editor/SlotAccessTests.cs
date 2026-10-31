@@ -117,7 +117,7 @@ namespace Core.SlotsSystem.Tests.Editor
         }
 
         [Test]
-        public void TryExtract_WhenRejected_KeepsContent()
+        public void TryExtract_WhenRejected_ReturnsDefaultAndKeepsContent()
         {
             var slot = new Slot<TestEntity>(new TestDefinition());
             var access = new SlotAccess<TestEntity>(slot, extractMatcher: _ => false);
@@ -128,7 +128,7 @@ namespace Core.SlotsSystem.Tests.Editor
             bool result = access.TryExtract(out TestEntity extracted);
 
             Assert.That(result, Is.False);
-            Assert.That(extracted, Is.SameAs(entity));
+            Assert.That(extracted, Is.Null);
             Assert.That(slot.Content, Is.SameAs(entity));
         }
 
