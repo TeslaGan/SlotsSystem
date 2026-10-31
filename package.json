@@ -1,0 +1,18 @@
+{
+  "name": "com.teslagan.slots-system",
+  "version": "0.1.0",
+  "displayName": "SlotsSystem",
+  "description": "A small generic slot system with validation, controlled access, containers, and change notifications.",
+  "unity": "6000.0",
+  "license": "MIT",
+  "author": {
+    "name": "TeslaGan"
+  },
+  "keywords": [
+    "slots",
+    "inventory",
+    "equipment",
+    "container",
+    "unity"
+  ]
+}
