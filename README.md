@@ -143,7 +143,7 @@ Or add it to `Packages/manifest.json`:
 For reproducible builds, pin a tag or commit:
 
 ```text
-https://github.com/TeslaGan/SlotsSystem.git#v1.0.0
+https://github.com/TeslaGan/SlotsSystem.git#v1.0.1
 ```
 
 ## License
