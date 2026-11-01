@@ -79,20 +79,32 @@ namespace Example
 
     public sealed class CharacterEquipment
     {
+        private readonly SlotContainerAccess<IEquipment> _equipmentAccess = new();
+
         public CharacterEquipment()
         {
-            Boots = new Slot<IEquipment>(new TypeSlotDefinition<IEquipment, IBoots>());
-            Pants = new Slot<IEquipment>(new TypeSlotDefinition<IEquipment, IPants>());
-            Body = new Slot<IEquipment>(new TypeSlotDefinition<IEquipment, IBodyArmor>());
-            Head = new Slot<IEquipment>(new TypeSlotDefinition<IEquipment, IHelmet>());
-            Hand = new Slot<IEquipment>(new TypeSlotDefinition<IEquipment, IHandEquipment>());
+            Boots = AddSlot(new TypeSlotDefinition<IEquipment, IBoots>());
+            Pants = AddSlot(new TypeSlotDefinition<IEquipment, IPants>());
+            Body = AddSlot(new TypeSlotDefinition<IEquipment, IBodyArmor>());
+            Head = AddSlot(new TypeSlotDefinition<IEquipment, IHelmet>());
+            Hand = AddSlot(new TypeSlotDefinition<IEquipment, IHandEquipment>());
         }
 
-        public Slot<IEquipment> Boots { get; }
-        public Slot<IEquipment> Pants { get; }
-        public Slot<IEquipment> Body { get; }
-        public Slot<IEquipment> Head { get; }
-        public Slot<IEquipment> Hand { get; }
+        public ISlotAccess<IEquipment> Boots { get; }
+        public ISlotAccess<IEquipment> Pants { get; }
+        public ISlotAccess<IEquipment> Body { get; }
+        public ISlotAccess<IEquipment> Head { get; }
+        public ISlotAccess<IEquipment> Hand { get; }
+
+        public ISlotContainerAccess<IEquipment> EquipmentAccess => _equipmentAccess;
+
+        private ISlotAccess<IEquipment> AddSlot(ISlotDefinition<IEquipment> definition)
+        {
+            var access = new SlotAccess<IEquipment>(new Slot<IEquipment>(definition));
+            _equipmentAccess.Add(access);
+
+            return access;
+        }
     }
 
     public static class CharacterEquipmentExample
@@ -100,20 +112,18 @@ namespace Example
         public static void Run()
         {
             var equipment = new CharacterEquipment();
+
             var boots = new Boots("Leather Boots");
             var pants = new Pants("Traveler Pants");
             var armor = new BodyArmor("Iron Armor");
             var helmet = new Helmet("Iron Helmet");
             var sword = new Sword("Longsword");
 
-            equipment.Boots.TrySet(boots);
-            equipment.Pants.TrySet(pants);
-            equipment.Body.TrySet(armor);
-            equipment.Head.TrySet(helmet);
-            equipment.Hand.TrySet(sword);
-
-            equipment.Head.TrySet(sword);
-            equipment.Boots.TrySet(helmet);
+            equipment.EquipmentAccess.TryInsert(boots);
+            equipment.EquipmentAccess.TryInsert(pants);
+            equipment.EquipmentAccess.TryInsert(armor);
+            equipment.EquipmentAccess.TryInsert(helmet);
+            equipment.EquipmentAccess.TryInsert(sword);
         }
     }
 }

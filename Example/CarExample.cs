@@ -14,47 +14,81 @@ namespace Example
 
     public sealed class Person : IFlagged<PassengerType>
     {
-        public Person(string name, PassengerType flags, float height)
+        public Person(string name, PassengerType flags)
         {
             Name = name;
             Flags = flags;
-            Height = height;
         }
 
         public string Name { get; }
         public PassengerType Flags { get; }
-        public float Height { get; }
+    }
+
+    public sealed class Car
+    {
+        private readonly SlotContainerAccess<Item> _trunkAccess = new();
+
+        public Car()
+        {
+            Driver = new SlotAccess<Person>(
+                new Slot<Person>(
+                    new EnumSlotDefinition<Person, PassengerType>(
+                        PassengerType.Driver,
+                        FlagMatchMode.All)));
+
+            FrontPassenger = new SlotAccess<Person>(
+                new Slot<Person>(
+                    new EnumSlotDefinition<Person, PassengerType>(
+                        PassengerType.Human,
+                        FlagMatchMode.All)));
+
+            RearLeftPassenger = new SlotAccess<Person>(
+                new Slot<Person>(
+                    new EnumSlotDefinition<Person, PassengerType>(
+                        PassengerType.Human | PassengerType.Animal,
+                        FlagMatchMode.Any)));
+
+            RearRightPassenger = new SlotAccess<Person>(
+                new Slot<Person>(
+                    new EnumSlotDefinition<Person, PassengerType>(
+                        PassengerType.Human | PassengerType.Animal,
+                        FlagMatchMode.Any)));
+
+            var trunkDefinition = new EnumSlotDefinition<Item, ItemType>(ItemType.Food | ItemType.Weapon | ItemType.Tool, FlagMatchMode.Any);
+
+            _trunkAccess.Add(new SlotAccess<Item>(new Slot<Item>(trunkDefinition)));
+            _trunkAccess.Add(new SlotAccess<Item>(new Slot<Item>(trunkDefinition)));
+        }
+
+        public ISlotAccess<Person> Driver { get; }
+        public ISlotAccess<Person> FrontPassenger { get; }
+        public ISlotAccess<Person> RearLeftPassenger { get; }
+        public ISlotAccess<Person> RearRightPassenger { get; }
+
+        public ISlotContainerAccess<Item> TrunkAccess => _trunkAccess;
     }
 
     public static class CarExample
     {
         public static void Run()
         {
-            var passengerDefinition = new EnumSlotDefinition<Person, PassengerType>(PassengerType.Human | PassengerType.Animal, FlagMatchMode.Any);
-            var itemDefinition = new EnumSlotDefinition<Item, ItemType>(ItemType.Food | ItemType.Weapon | ItemType.Tool, FlagMatchMode.Any);
+            var car = new Car();
 
-            var firstPassengerSlot = new Slot<Person>(passengerDefinition);
-            var secondPassengerSlot = new Slot<Person>(passengerDefinition);
-            var firstTrunkSlot = new Slot<Item>(itemDefinition);
-            var secondTrunkSlot = new Slot<Item>(itemDefinition);
+            var alice = new Person("Alice", PassengerType.Human | PassengerType.Driver);
+            var bob = new Person("Bob", PassengerType.Human);
+            var dog = new Person("Dog", PassengerType.Animal);
 
-            var passengers = new SlotContainerAccess<Person>();
-            passengers.Add(new SlotAccess<Person>(firstPassengerSlot, person => person.Height < 2f));
-            passengers.Add(new SlotAccess<Person>(secondPassengerSlot, person => person.Height < 2f));
-
-            var trunk = new SlotContainerAccess<Item>();
-            trunk.Add(new SlotAccess<Item>(firstTrunkSlot));
-            trunk.Add(new SlotAccess<Item>(secondTrunkSlot));
-
-            var alice = new Person("Alice", PassengerType.Human | PassengerType.Driver, 1.70f);
-            var bob = new Person("Bob", PassengerType.Human, 2.10f);
             var sword = new Item("Sword", ItemType.Weapon);
             var apple = new Item("Apple", ItemType.Food);
 
-            passengers.Slots[0].TryInsert(alice);
-            passengers.Slots[1].TryInsert(bob);
-            trunk.Slots[0].TryInsert(sword);
-            trunk.Slots[1].TryInsert(apple);
+            car.Driver.TryInsert(alice);
+            car.FrontPassenger.TryInsert(bob);
+
+            car.FrontPassenger.TryInsert(dog);
+            car.RearLeftPassenger.TryInsert(dog);
+
+            car.TrunkAccess.TryInsert(sword);
+            car.TrunkAccess.TryInsert(apple);
         }
     }
 }

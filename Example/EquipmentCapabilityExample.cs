@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Core.SlotsSystem;
 
 namespace Example
@@ -12,26 +11,24 @@ namespace Example
     {
     }
 
-    public interface IManaStorage
+    public interface IManaReceiver
     {
         float Mana { get; }
         float Capacity { get; }
 
         float AddMana(float amount);
-        float RemoveMana(float amount);
+    }
+
+    public interface IManaTransmitter
+    {
     }
 
     public interface IEquippedTickable
     {
-        void Tick(IEquipmentContext context, float deltaTime);
+        void Tick(IReadOnlySlotContainer<EquipmentItem> inventory, float deltaTime);
     }
 
-    public interface IEquipmentContext
-    {
-        IEnumerable<EquipmentItem> BackpackItems { get; }
-    }
-
-    public sealed class ManaStaff : EquipmentItem, IManaStorage
+    public sealed class ManaStaff : EquipmentItem, IManaReceiver
     {
         private float _mana;
 
@@ -45,99 +42,67 @@ namespace Example
 
             return accepted;
         }
-
-        public float RemoveMana(float amount)
-        {
-            float removed = MathF.Min(amount, _mana);
-            _mana -= removed;
-
-            return removed;
-        }
     }
 
-    public sealed class ManaGeneratorRing : EquipmentItem, IRing, IEquippedTickable
+    public sealed class ManaGeneratorRing : EquipmentItem, IRing, IManaTransmitter, IEquippedTickable
     {
-        public void Tick(IEquipmentContext context, float deltaTime)
+        public void Tick(IReadOnlySlotContainer<EquipmentItem> inventory, float deltaTime)
         {
-            foreach(EquipmentItem item in context.BackpackItems)
+            foreach(IReadOnlySlot<EquipmentItem> slot in inventory.Slots)
             {
-                if(item is IManaStorage storage)
-                    storage.AddMana(deltaTime);
-            }
-        }
-    }
-
-    public sealed class ManaBatteryRing : EquipmentItem, IRing, IManaStorage, IEquippedTickable
-    {
-        private float _mana;
-
-        public float Mana => _mana;
-        public float Capacity => 100f;
-
-        public float AddMana(float amount)
-        {
-            float accepted = MathF.Min(amount, Capacity - _mana);
-            _mana += accepted;
-
-            return accepted;
-        }
-
-        public float RemoveMana(float amount)
-        {
-            float removed = MathF.Min(amount, _mana);
-            _mana -= removed;
-
-            return removed;
-        }
-
-        public void Tick(IEquipmentContext context, float deltaTime)
-        {
-            foreach(EquipmentItem item in context.BackpackItems)
-            {
-                if(item is not IManaStorage storage)
+                if(slot.Content is not IManaReceiver receiver)
                     continue;
 
-                float removed = RemoveMana(deltaTime);
+                if(slot.Content is IManaTransmitter)
+                    continue;
 
-                if(removed <= 0f)
-                    return;
-
-                float accepted = storage.AddMana(removed);
-
-                if(accepted < removed)
-                    AddMana(removed - accepted);
+                receiver.AddMana(deltaTime);
+                return;
             }
         }
     }
 
-    public sealed class EquipmentContext : IEquipmentContext
+    public sealed class ManaBatteryRing : EquipmentItem, IRing, IManaReceiver, IManaTransmitter, IEquippedTickable
     {
-        private readonly IReadOnlySlotContainer<EquipmentItem> _backpack;
+        private float _mana;
 
-        public EquipmentContext(IReadOnlySlotContainer<EquipmentItem> backpack)
+        public float Mana => _mana;
+        public float Capacity => 100f;
+
+        public float AddMana(float amount)
         {
-            _backpack = backpack ?? throw new ArgumentNullException(nameof(backpack));
+            float accepted = MathF.Min(amount, Capacity - _mana);
+            _mana += accepted;
+
+            return accepted;
         }
 
-        public IEnumerable<EquipmentItem> BackpackItems
+        public void Tick(IReadOnlySlotContainer<EquipmentItem> inventory, float deltaTime)
         {
-            get
+            foreach(IReadOnlySlot<EquipmentItem> slot in inventory.Slots)
             {
-                foreach(IReadOnlySlot<EquipmentItem> slot in _backpack.Slots)
-                {
-                    if(slot.Content != null)
-                        yield return slot.Content;
-                }
+                if(slot.Content is not IManaReceiver receiver)
+                    continue;
+
+                if(slot.Content is IManaTransmitter)
+                    continue;
+
+                if(_mana <= 0f)
+                    return;
+
+                float mana = MathF.Min(deltaTime, _mana);
+                float accepted = receiver.AddMana(mana);
+
+                _mana -= accepted;
+                return;
             }
         }
     }
 
     public sealed class EquipmentLoadout
     {
-        private readonly SlotContainer<EquipmentItem> _equipped = new();
-        private readonly SlotContainerAccess<EquipmentItem> _ringAccess = new();
-
-        private readonly SlotContainer<EquipmentItem> _backpack = new();
+        private readonly SlotContainerAccess<EquipmentItem> _inventoryAccess = new();
+        private readonly SlotContainerAccess<EquipmentItem> _equipmentAccess = new();
         private readonly SlotContainerAccess<EquipmentItem> _backpackAccess = new();
 
         public EquipmentLoadout(int backpackCapacity)
@@ -145,41 +110,53 @@ namespace Example
             var ringDefinition = new TypeSlotDefinition<EquipmentItem, IRing>();
             var itemDefinition = new SlotDefinition<EquipmentItem>();
 
-            AddRingSlot(new Slot<EquipmentItem>(ringDefinition));
-            AddRingSlot(new Slot<EquipmentItem>(ringDefinition));
+            AddEquipmentSlot(new Slot<EquipmentItem>(ringDefinition));
+            AddEquipmentSlot(new Slot<EquipmentItem>(ringDefinition));
 
             for(int i = 0; i < backpackCapacity; i++)
                 AddBackpackSlot(new Slot<EquipmentItem>(itemDefinition));
         }
 
-        public IReadOnlySlotContainer<EquipmentItem> Equipped => _equipped;
-        public IReadOnlySlotContainer<EquipmentItem> Backpack => _backpack;
-
-        public ISlotContainerAccess<EquipmentItem> RingAccess => _ringAccess;
+        public ISlotContainerAccess<EquipmentItem> InventoryAccess => _inventoryAccess;
+        public ISlotContainerAccess<EquipmentItem> EquipmentAccess => _equipmentAccess;
         public ISlotContainerAccess<EquipmentItem> BackpackAccess => _backpackAccess;
 
-        private void AddRingSlot(ISlot<EquipmentItem> slot)
+        public bool TryPickup(EquipmentItem item)
         {
-            _equipped.Add(slot);
-            _ringAccess.Add(new SlotAccess<EquipmentItem>(slot));
+            return _backpackAccess.TryInsert(item);
+        }
+
+        public bool TryQuickMove(EquipmentItem item)
+        {
+            if(_equipmentAccess.TryInsert(item))
+                return true;
+
+            return _backpackAccess.TryInsert(item);
+        }
+
+        public void Tick(float deltaTime)
+        {
+            foreach(IReadOnlySlot<EquipmentItem> slot in _equipmentAccess.Slots)
+            {
+                if(slot.Content is IEquippedTickable tickable)
+                    tickable.Tick(_inventoryAccess, deltaTime);
+            }
+        }
+
+        private void AddEquipmentSlot(ISlot<EquipmentItem> slot)
+        {
+            var access = new SlotAccess<EquipmentItem>(slot);
+
+            _inventoryAccess.Add(access);
+            _equipmentAccess.Add(access);
         }
 
         private void AddBackpackSlot(ISlot<EquipmentItem> slot)
         {
-            _backpack.Add(slot);
-            _backpackAccess.Add(new SlotAccess<EquipmentItem>(slot));
-        }
-    }
+            var access = new SlotAccess<EquipmentItem>(slot);
 
-    public static class EquipmentRuntime
-    {
-        public static void TickEquipped(IReadOnlySlotContainer<EquipmentItem> equipped, IEquipmentContext context, float deltaTime)
-        {
-            foreach(IReadOnlySlot<EquipmentItem> slot in equipped.Slots)
-            {
-                if(slot.Content is IEquippedTickable tickable)
-                    tickable.Tick(context, deltaTime);
-            }
+            _inventoryAccess.Add(access);
+            _backpackAccess.Add(access);
         }
     }
 
@@ -188,19 +165,20 @@ namespace Example
         public static void Run()
         {
             var loadout = new EquipmentLoadout(4);
+
             var generator = new ManaGeneratorRing();
             var battery = new ManaBatteryRing();
             var staff = new ManaStaff();
+            var spareRing = new ManaGeneratorRing();
 
             battery.AddMana(25f);
 
-            loadout.RingAccess.Slots[0].TryInsert(generator);
-            loadout.RingAccess.Slots[1].TryInsert(battery);
-            loadout.BackpackAccess.Slots[0].TryInsert(staff);
+            loadout.InventoryAccess.Slots[0].TryInsert(generator);
+            loadout.TryQuickMove(battery);
+            loadout.TryPickup(staff);
+            loadout.TryPickup(spareRing);
 
-            var context = new EquipmentContext(loadout.Backpack);
-
-            EquipmentRuntime.TickEquipped(loadout.Equipped, context, 1f);
+            loadout.Tick(1f);
         }
     }
 }

@@ -2,9 +2,9 @@ using Core.SlotsSystem;
 
 namespace Example
 {
-    public sealed class Fuel
+    public abstract class FurnaceItem
     {
-        public Fuel(string name)
+        protected FurnaceItem(string name)
         {
             Name = name;
         }
@@ -12,20 +12,34 @@ namespace Example
         public string Name { get; }
     }
 
+    public sealed class Fuel : FurnaceItem
+    {
+        public Fuel(string name) : base(name)
+        {
+        }
+    }
+
+    public sealed class Ash : FurnaceItem
+    {
+        public Ash(string name) : base(name)
+        {
+        }
+    }
+
     public sealed class Furnace
     {
-        private readonly Slot<Fuel> _fuelSlot;
-        private readonly SlotAccess<Fuel> _fuelAccess;
+        private readonly Slot<FurnaceItem> _fuelSlot;
+        private readonly SlotContainerAccess<FurnaceItem> _access = new();
 
         private bool _isWorking;
 
         public Furnace()
         {
-            _fuelSlot = new Slot<Fuel>(new SlotDefinition<Fuel>());
-            _fuelAccess = new SlotAccess<Fuel>(_fuelSlot, _ => _isWorking == false, _ => _isWorking == false);
+            _fuelSlot = new Slot<FurnaceItem>(new SlotDefinition<FurnaceItem>());
+            _access.Add(new SlotAccess<FurnaceItem>(_fuelSlot, CanInsert, CanExtract));
         }
 
-        public ISlotAccess<Fuel> FuelAccess => _fuelAccess;
+        public ISlotContainerAccess<FurnaceItem> Access => _access;
 
         public void Start()
         {
@@ -37,9 +51,19 @@ namespace Example
             _isWorking = false;
         }
 
-        public void BurnToAsh(Fuel ash)
+        public void BurnToAsh()
         {
-            _fuelSlot.TrySet(ash);
+            _fuelSlot.TrySet(new Ash("Ash"));
+        }
+
+        private bool CanInsert(FurnaceItem item)
+        {
+            return _isWorking == false && item is Fuel;
+        }
+
+        private bool CanExtract(FurnaceItem item)
+        {
+            return _isWorking == false;
         }
     }
 
@@ -49,16 +73,16 @@ namespace Example
         {
             var furnace = new Furnace();
             var coal = new Fuel("Coal");
-            var ash = new Fuel("Ash");
 
-            furnace.FuelAccess.TryInsert(coal);
+            furnace.Access.TryInsert(coal);
+
             furnace.Start();
+            furnace.Access.TryExtract(item => item is Ash, out _);
 
-            furnace.FuelAccess.TryExtract(out _);
-            furnace.BurnToAsh(ash);
-
+            furnace.BurnToAsh();
             furnace.Stop();
-            furnace.FuelAccess.TryExtract(out Fuel extracted);
+
+            furnace.Access.TryExtract(item => item is Ash, out FurnaceItem ash);
         }
     }
 }

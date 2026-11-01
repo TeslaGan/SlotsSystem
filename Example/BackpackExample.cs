@@ -29,18 +29,18 @@ namespace Example
         public static void Run()
         {
             var definition = new EnumSlotDefinition<Item, ItemType>(ItemType.Food | ItemType.Weapon | ItemType.Tool, FlagMatchMode.Any);
-            var backpack = new SlotContainer<Item>();
-            var firstSlot = new Slot<Item>(definition);
-            var secondSlot = new Slot<Item>(definition);
+            var backpack = new SlotContainerAccess<Item>();
 
-            backpack.Add(firstSlot);
-            backpack.Add(secondSlot);
+            backpack.Add(new SlotAccess<Item>(new Slot<Item>(definition)));
+            backpack.Add(new SlotAccess<Item>(new Slot<Item>(definition)));
 
             var sword = new Item("Sword", ItemType.Weapon);
             var apple = new Item("Apple", ItemType.Food);
 
-            backpack.Slots[0].TrySet(sword);
-            backpack.Slots[1].TrySet(apple);
+            backpack.Slots[1].TryInsert(sword);
+            backpack.TryInsert(apple);
+
+            backpack.TryExtract(item => item.Name == "Apple", out Item extractedApple);
         }
     }
 }
