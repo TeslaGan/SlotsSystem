@@ -81,6 +81,33 @@ namespace Core.SlotsSystem.Tests.Editor
         }
 
         [Test]
+        public void TryInsert_WhenDefinitionRejects_ReturnsFalseAndKeepsSlotEmpty()
+        {
+            var slot = new Slot<TestEntity>(new TestDefinition());
+            var access = new SlotAccess<TestEntity>(slot);
+
+            bool result = access.TryInsert(new TestEntity(0));
+
+            Assert.That(result, Is.False);
+            Assert.That(slot.Content, Is.Null);
+        }
+
+        [Test]
+        public void TryInsert_WithNull_ReturnsFalseAndKeepsContent()
+        {
+            var slot = new Slot<TestEntity>(new TestDefinition());
+            var access = new SlotAccess<TestEntity>(slot);
+            var entity = new TestEntity(1);
+
+            slot.TrySet(entity);
+
+            bool result = access.TryInsert(null);
+
+            Assert.That(result, Is.False);
+            Assert.That(slot.Content, Is.SameAs(entity));
+        }
+
+        [Test]
         public void CanExtract_WhenSlotIsEmpty_ReturnsFalse()
         {
             var slot = new Slot<TestEntity>(new TestDefinition());

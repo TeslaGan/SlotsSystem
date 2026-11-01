@@ -36,5 +36,37 @@ namespace Core.SlotsSystem
 
             return true;
         }
+
+        public bool TryInsert(TEntity entity)
+        {
+            foreach(ISlotAccess<TEntity> slot in _slots)
+            {
+                if(slot.TryInsert(entity))
+                    return true;
+            }
+
+            return false;
+        }
+
+        public bool TryExtract(Func<TEntity, bool> matcher, out TEntity entity)
+        {
+            if(matcher == null)
+                throw new ArgumentNullException(nameof(matcher));
+
+            foreach(ISlotAccess<TEntity> slot in _slots)
+            {
+                if(slot.Content is null)
+                    continue;
+
+                if(matcher(slot.Content) == false)
+                    continue;
+
+                if(slot.TryExtract(out entity))
+                    return true;
+            }
+
+            entity = default;
+            return false;
+        }
     }
 }
